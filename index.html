@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NoteSnap OCR - Picture to Text</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 NoteSnap</h1>
+    <p>Turn your handwritten notes into editable, searchable text.</p>
+
+    <div id="dropZone" class="drop-zone">
+      <p id="dropText">📸 Drag & Drop your note image here<br>or click to upload</p>
+      <input type="file" id="imageInput" accept="image/*" />
+      <img id="preview" alt="Preview will appear here" />
+    </div>
+
+    <div class="controls">
+      <button id="extractBtn" disabled>Extract Text</button>
+      <button id="downloadPDF" disabled>Download PDF</button>
+    </div>
+
+    <p id="status"></p>
+    <textarea id="outputText" placeholder="Extracted text will appear here..."></textarea>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
