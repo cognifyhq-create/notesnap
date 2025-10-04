@@ -7,31 +7,30 @@ const downloadPDF = document.getElementById("downloadPDF");
 const outputText = document.getElementById("outputText");
 const status = document.getElementById("status");
 
+// ✅ Your Google Cloud Vision API key
+const API_KEY = "AIzaSyC452k0tvnzcIdhpavLReQcF8kfrmzBDqA";
+
 let selectedImage = null;
 
-// ✅ Helper: Display selected image
+// Preview image
 function showPreview(file) {
   if (!file || !file.type.startsWith("image/")) {
     alert("Please select an image file.");
     return;
   }
-
   preview.src = URL.createObjectURL(file);
   preview.style.display = "block";
-  dropText.textContent = "✅ Image loaded successfully!";
+  dropText.textContent = "✅ Image loaded!";
   selectedImage = file;
   extractBtn.disabled = false;
   downloadPDF.disabled = true;
 }
 
-// 🖱️ Click to upload
+// Drag & drop events
 dropZone.addEventListener("click", () => imageInput.click());
+imageInput.addEventListener("change", e => showPreview(e.target.files[0]));
 
-// 📂 File input
-imageInput.addEventListener("change", (e) => showPreview(e.target.files[0]));
-
-// 🧲 Drag and drop events
-dropZone.addEventListener("dragover", (e) => {
+dropZone.addEventListener("dragover", e => {
   e.preventDefault();
   dropZone.classList.add("dragover");
   dropText.textContent = "Drop the image here...";
@@ -42,36 +41,57 @@ dropZone.addEventListener("dragleave", () => {
   dropText.textContent = "📸 Drag & Drop your note image here or click to upload";
 });
 
-dropZone.addEventListener("drop", (e) => {
+dropZone.addEventListener("drop", e => {
   e.preventDefault();
   dropZone.classList.remove("dragover");
   showPreview(e.dataTransfer.files[0]);
 });
 
-// 🧠 Extract Text using Tesseract.js
-extractBtn.addEventListener("click", () => {
-  if (!selectedImage) return alert("Please upload or drag an image first!");
-  
-  status.textContent = "🔍 Processing... please wait ⏳";
+// Convert file to Base64 for API
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Extract text using Google Cloud Vision
+extractBtn.addEventListener("click", async () => {
+  if (!selectedImage) return alert("Upload an image first!");
+  status.textContent = "🔍 Processing...";
   extractBtn.disabled = true;
 
-  Tesseract.recognize(selectedImage, "eng", {
-    logger: info => console.log(info)
-  })
-  .then(({ data: { text } }) => {
-    outputText.value = text.trim() || "[No text detected]";
+  try {
+    const base64 = await fileToBase64(selectedImage);
+    const requestBody = {
+      requests: [{
+        image: { content: base64 },
+        features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
+      }]
+    };
+
+    const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody)
+    });
+
+    const data = await response.json();
+    const text = data.responses[0].fullTextAnnotation?.text || "[No text detected]";
+    outputText.value = text;
     status.textContent = "✅ Text extracted successfully!";
     downloadPDF.disabled = false;
-    extractBtn.disabled = false;
-  })
-  .catch(err => {
+  } catch (err) {
     console.error(err);
-    status.textContent = "❌ Error: Could not extract text.";
+    status.textContent = "❌ Error extracting text.";
+  } finally {
     extractBtn.disabled = false;
-  });
+  }
 });
 
-// 📄 Download as PDF
+// Download PDF
 downloadPDF.addEventListener("click", () => {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
